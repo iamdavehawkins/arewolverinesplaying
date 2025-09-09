@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Are Wolverines Playing? - Michigan NFL Players in Current Games</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <header class="header">
+        <div class="container">
+            <h1 class="title">
+                <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/f/fb/Michigan_Wolverines_logo.svg/1024px-Michigan_Wolverines_logo.svg.png" alt="Michigan Wolverines Logo" class="michigan-logo">
+                Are Wolverines Playing?
+            </h1>
+        </div>
+    </header>
+
+    <main class="main">
+        <div class="container">
+            <div class="status-section">
+                <div id="loading" class="loading">
+                    <div class="spinner"></div>
+                    <p>Checking for current NFL games...</p>
+                </div>
+                
+                <div id="no-games" class="status-message" style="display: none;">
+                    <h2>🏈 No NFL Games Currently Active</h2>
+                    <p>Check back during game time to see which Michigan Wolverines are playing!</p>
+                </div>
+
+                <div id="wolverines-matchups" class="wolverines-matchups" style="display: none;">
+                    <div id="matchups-container" class="matchups-container"></div>
+                </div>
+            </div>
+
+            <div id="no-wolverines" class="status-message" style="display: none;">
+                <h2>No Wolverines Found</h2>
+                <p>No University of Michigan players are currently playing in active NFL games.</p>
+            </div>
+        </div>
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <p>&copy; <span id="current-year"></span> Are Wolverines Playing? | Data provided by ESPN API</p>
+            <p class="go-blue">Go Blue! 〽️</p>
+        </div>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+</html>
