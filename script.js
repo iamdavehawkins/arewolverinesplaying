@@ -1,3 +1,9 @@
+// ============================================
+// DEVELOPER MODE - Set to true to show all teams for testing
+// Set back to false for production
+const DEV_MODE = false;
+// ============================================
+
 // Cache for Michigan players to avoid repeated API calls
 let michiganPlayersCache = null;
 const CACHE_DURATION = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
@@ -71,8 +77,17 @@ class WolverineTracker {
                 for (const event of data.events) {
                     const status = event.status?.type?.name;
                     
-                    // Only check games that are currently in progress
-                    if (status === 'STATUS_IN_PROGRESS' || 
+                    // DEV_MODE: Show all games regardless of status for testing
+                    if (DEV_MODE) {
+                        this.currentGames.push({
+                            id: event.id,
+                            name: event.name,
+                            shortName: event.shortName,
+                            status: event.status,
+                            competitors: event.competitions[0].competitors,
+                            date: event.date
+                        });
+                    } else if (status === 'STATUS_IN_PROGRESS' || 
                         status === 'STATUS_HALFTIME' || 
                         status === 'STATUS_END_PERIOD' ||
                         status === 'STATUS_DELAYED') {
@@ -221,11 +236,53 @@ class WolverineTracker {
         }
     }
 
+    // Helper function to check if college is University of Michigan (not other Michigan schools)
+    isUniversityOfMichigan(collegeName) {
+        if (!collegeName || typeof collegeName !== 'string') return false;
+        
+        const collegeLower = collegeName.toLowerCase().trim();
+        
+        // Explicitly exclude other Michigan schools first
+        const excludedSchools = [
+            'michigan state',
+            'western michigan',
+            'eastern michigan',
+            'central michigan',
+            'michigan tech',
+            'northern michigan'
+        ];
+        
+        for (const excluded of excludedSchools) {
+            if (collegeLower.includes(excluded)) {
+                return false;
+            }
+        }
+        
+        // Now check for University of Michigan variations
+        // Must match "michigan" alone or "university of michigan" patterns
+        const validPatterns = [
+            'university of michigan',
+            'u of m',
+            'u-m',
+            'umich'
+        ];
+        
+        for (const pattern of validPatterns) {
+            if (collegeLower.includes(pattern)) {
+                return true;
+            }
+        }
+        
+        // Check for exact "michigan" (the college field often just says "Michigan")
+        if (collegeLower === 'michigan') {
+            return true;
+        }
+        
+        return false;
+    }
+
     async checkPlayerForMichigan(athlete, teamInfo) {
         try {
-            // Check all players for Michigan connection - removed restrictive filtering
-            
-            
             // Check if college info is already in the roster data
             let college = null;
             
@@ -271,25 +328,21 @@ class WolverineTracker {
                 }
             }
             
-            
-            if (college && typeof college === 'string') {
-                const collegeLower = college.toLowerCase();
-                if (collegeLower.includes('michigan') && !collegeLower.includes('michigan state') && !collegeLower.includes('michigan tech') && !collegeLower.includes('western michigan') && !collegeLower.includes('eastern michigan') && !collegeLower.includes('central michigan')) {
-                    const wolverine = {
-                        name: athlete.displayName,
-                        team: teamInfo.name,
-                        number: athlete.jersey || 'N/A',
-                        position: athlete.position?.abbreviation || 'N/A',
-                        college: college,
-                        espnId: athlete.id,
-                        photoUrl: this.getPlayerPhotoUrl(athlete.id),
-                        teamId: teamInfo.id
-                    };
-                    
-                    // Add to team's wolverines array
-                    teamInfo.wolverines.push(wolverine);
-                }
-            } else {
+            // Use strict University of Michigan check
+            if (this.isUniversityOfMichigan(college)) {
+                const wolverine = {
+                    name: athlete.displayName,
+                    team: teamInfo.name,
+                    number: athlete.jersey || 'N/A',
+                    position: athlete.position?.abbreviation || 'N/A',
+                    college: college,
+                    espnId: athlete.id,
+                    photoUrl: this.getPlayerPhotoUrl(athlete.id),
+                    teamId: teamInfo.id
+                };
+                
+                // Add to team's wolverines array
+                teamInfo.wolverines.push(wolverine);
             }
         } catch (error) {
         }
@@ -306,79 +359,6 @@ class WolverineTracker {
             return `https://a.espncdn.com/i/teamlogos/nfl/500/${team.abbreviation.toLowerCase()}.png`;
         }
         return null;
-    }
-
-    async checkPlayerForMichigan(athlete, teamInfo) {
-    try {
-        // Check all players for Michigan connection - removed restrictive filtering
-        
-        // Check if college info is already in the roster data
-        let college = null;
-        
-        // First check: college info from roster (if available)
-        if (athlete.college) {
-            if (typeof athlete.college === 'string') {
-                college = athlete.college;
-            } else if (athlete.college.name) {
-                college = athlete.college.name;
-            } else if (athlete.college.displayName) {
-                college = athlete.college.displayName;
-            }
-        }
-        
-        // If no college from roster, try API endpoints
-        if (!college) {
-            // Try athlete bio endpoint
-            try {
-                const bioUrl = `https://sports.core.api.espn.com/v2/sports/football/leagues/nfl/athletes/${athlete.id}`;
-                const bioResponse = await fetch(bioUrl);
-                if (bioResponse.ok) {
-                    const bioData = await bioResponse.json();
-                    
-                    if (bioData.college) {
-                        if (typeof bioData.college === 'string') {
-                            college = bioData.college;
-                        } else if (bioData.college.$ref) {
-                            // College is a reference, fetch it
-                            try {
-                                const collegeResponse = await fetch(bioData.college.$ref);
-                                if (collegeResponse.ok) {
-                                    const collegeData = await collegeResponse.json();
-                                    college = collegeData.name || collegeData.displayName;
-                                }
-                            } catch (ce) {
-                            }
-                        } else {
-                            college = bioData.college.name || bioData.college.displayName;
-                        }
-                    }
-                }
-            } catch (e) {
-            }
-        }
-        
-        
-        if (college && typeof college === 'string') {
-            const collegeLower = college.toLowerCase();
-            if (collegeLower.includes('michigan') && !collegeLower.includes('michigan state')) {
-                const wolverine = {
-                    name: athlete.displayName,
-                    team: teamInfo.name,
-                    number: athlete.jersey || 'N/A',
-                    position: athlete.position?.abbreviation || 'N/A',
-                    college: college,
-                    espnId: athlete.id,
-                    photoUrl: this.getPlayerPhotoUrl(athlete.id),
-                    teamId: teamInfo.id
-                };
-                
-                // Add to team's wolverines array
-                teamInfo.wolverines.push(wolverine);
-            }
-        }
-    } catch (error) {
-        // Error handling for player checking
-    }
     }
 
     displayResults() {
